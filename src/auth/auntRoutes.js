@@ -2,23 +2,15 @@ const express = require("express");
 const router = express.Router();
 const { register, login, me } = require("../auth/authController");
 const verificarToken = require("../middlewares/authMiddleware");
+const { validarRegistro, validarLogin } = require("../middlewares/validadores");
 
-/**
- * Registro público
- * POST /api/auth/register
- */
-router.post("/register", register);
+/** POST /api/auth/register */
+router.post("/register", validarRegistro, register);
 
-/**
- * Login
- * POST /api/auth/login
- */
-router.post("/login", login);
+/** POST /api/auth/login */
+router.post("/login", validarLogin, login);
 
-/**
- * Quién está logueado (requiere token)
- * GET /api/auth/me
- */
+/** GET /api/auth/me */
 router.get("/me", verificarToken, me);
 
 module.exports = router;

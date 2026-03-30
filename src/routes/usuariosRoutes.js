@@ -3,6 +3,12 @@ const router = express.Router();
 const verificarToken = require("../middlewares/authMiddleware");
 const verificarRol = require("../middlewares/rolMiddleware");
 const {
+  validarUsuario,
+  validarActualizarUsuario,
+  validarLogin,
+  validarId,
+} = require("../middlewares/validadores");
+const {
   crearUsuario,
   obtenerUsuarios,
   obtenerUsuarioPorId,
@@ -11,22 +17,44 @@ const {
   loginUsuario,
 } = require("../controllers/usuariosController");
 
-/** Crear usuario */
-router.post("/crear", crearUsuario);
+// POST /api/usuarios/login — público (sin autenticación)
+router.post("/login", validarLogin, loginUsuario);
 
-/** Login */
-router.post("/login", loginUsuario);
+// POST /api/usuarios/crear
+// ✅ CORREGIDO: antes no tenía verificarToken ni verificarRol,
+//   cualquier visitante anónimo podía crear un usuario administrador.
+//   Ahora solo administradores autenticados pueden crear usuarios.
+router.post(
+  "/crear",
+  verificarToken,
+  verificarRol("administrador"),
+  validarUsuario,
+  crearUsuario
+);
 
-/** Listar todos los usuarios (solo administrador) */
+// GET /api/usuarios/listar — solo admin
 router.get("/listar", verificarToken, verificarRol("administrador"), obtenerUsuarios);
 
-/** Obtener usuario por ID */
-router.get("/:id", verificarToken, obtenerUsuarioPorId);
+// GET /api/usuarios/:id — autenticado
+router.get("/:id", verificarToken, validarId, obtenerUsuarioPorId);
 
-/** Actualizar usuario (solo administrador) */
-router.put("/:id", verificarToken, verificarRol("administrador"), actualizarUsuario);
+// PUT /api/usuarios/:id — solo admin
+router.put(
+  "/:id",
+  verificarToken,
+  verificarRol("administrador"),
+  validarId,
+  validarActualizarUsuario,
+  actualizarUsuario
+);
 
-/** Eliminar usuario (solo administrador) */
-router.delete("/:id", verificarToken, verificarRol("administrador"), eliminarUsuario);
+// DELETE /api/usuarios/:id — solo admin
+router.delete(
+  "/:id",
+  verificarToken,
+  verificarRol("administrador"),
+  validarId,
+  eliminarUsuario
+);
 
 module.exports = router;

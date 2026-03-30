@@ -1,12 +1,30 @@
 const Evento = require("../models/Evento");
-const Asistente = require("../models/Asistente");
+const Inscripcion = require("../models/Inscripcion");
 
 /**
  * Crear evento
+ * POST /api/eventos/crear
+
  */
 const crearEvento = async (req, res) => {
   try {
-    const nuevoEvento = new Evento(req.body);
+    const {
+      nombreEvento,
+      descripcionEvento,
+      fechaEvento,
+      ubicacionEvento,
+      capacidadMaxima,
+    } = req.body;
+
+    const nuevoEvento = new Evento({
+      nombreEvento,
+      descripcionEvento,
+      fechaEvento,
+      ubicacionEvento,
+      capacidadMaxima,
+      // El estado siempre empieza en "activo" (definido en el Schema como default)
+    });
+
     await nuevoEvento.save();
     res.status(201).json(nuevoEvento);
   } catch (error) {
@@ -16,10 +34,12 @@ const crearEvento = async (req, res) => {
 
 /**
  * Listar todos los eventos
+ * GET /api/eventos/listar
+ * Devuelve un array plano (el frontend debe esperar esto)
  */
 const obtenerEventos = async (req, res) => {
   try {
-    const eventos = await Evento.find();
+    const eventos = await Evento.find().sort({ fechaCreacion: -1 });
     res.json(eventos);
   } catch (error) {
     res.status(500).json({ mensaje: error.message });
@@ -28,6 +48,7 @@ const obtenerEventos = async (req, res) => {
 
 /**
  * Obtener un evento por ID
+ * GET /api/eventos/:id
  */
 const obtenerEventoPorId = async (req, res) => {
   try {
@@ -43,6 +64,7 @@ const obtenerEventoPorId = async (req, res) => {
 
 /**
  * Actualizar evento
+ * PUT /api/eventos/:id
  */
 const actualizarEvento = async (req, res) => {
   try {
@@ -51,9 +73,11 @@ const actualizarEvento = async (req, res) => {
       req.body,
       { new: true, runValidators: true }
     );
+
     if (!eventoActualizado) {
       return res.status(404).json({ mensaje: "Evento no encontrado" });
     }
+
     res.json({ mensaje: "Evento actualizado correctamente", evento: eventoActualizado });
   } catch (error) {
     res.status(500).json({ mensaje: error.message });
@@ -62,6 +86,7 @@ const actualizarEvento = async (req, res) => {
 
 /**
  * Eliminar evento
+ * DELETE /api/eventos/:id
  */
 const eliminarEvento = async (req, res) => {
   try {
@@ -89,14 +114,18 @@ const cancelarEvento = async (req, res) => {
     if (!evento) {
       return res.status(404).json({ mensaje: "Evento no encontrado" });
     }
+
     if (evento.estadoEvento === "cancelado") {
       return res.status(400).json({ mensaje: "El evento ya está cancelado" });
     }
+
     if (evento.estadoEvento === "finalizado") {
       return res.status(400).json({ mensaje: "No se puede cancelar un evento finalizado" });
     }
+
     evento.estadoEvento = "cancelado";
     await evento.save();
+
     res.json({ mensaje: "Evento cancelado correctamente", evento });
   } catch (error) {
     res.status(500).json({ mensaje: "Error al cancelar evento", error: error.message });
@@ -113,14 +142,18 @@ const finalizarEvento = async (req, res) => {
     if (!evento) {
       return res.status(404).json({ mensaje: "Evento no encontrado" });
     }
+
     if (evento.estadoEvento === "finalizado") {
       return res.status(400).json({ mensaje: "El evento ya está finalizado" });
     }
+
     if (evento.estadoEvento === "cancelado") {
       return res.status(400).json({ mensaje: "No se puede finalizar un evento cancelado" });
     }
+
     evento.estadoEvento = "finalizado";
     await evento.save();
+
     res.json({ mensaje: "Evento finalizado correctamente", evento });
   } catch (error) {
     res.status(500).json({ mensaje: "Error al finalizar evento", error: error.message });
@@ -137,9 +170,13 @@ const obtenerEventosDisponibles = async (req, res) => {
 
     const eventosConCupo = await Promise.all(
       eventosActivos.map(async (evento) => {
-        const totalAsistentes = await Asistente.countDocuments({ evento: evento._id });
-        const cupoDisponible = evento.capacidadMaxima - totalAsistentes;
-        return { ...evento.toObject(), totalAsistentes, cupoDisponible };
+        const totalInscritos = await Inscripcion.countDocuments({
+          evento: evento._id,
+          estadoInscripcion: { $ne: "cancelada" },
+        });
+
+        const cupoDisponible = evento.capacidadMaxima - totalInscritos;
+        return { ...evento.toObject(), totalInscritos, cupoDisponible };
       })
     );
 
@@ -155,17 +192,25 @@ const obtenerEventosDisponibles = async (req, res) => {
 };
 
 /**
- * Consulta especial: asistentes de un evento con resumen de cupo
- * GET /api/eventos/:id/asistentes
+ * Inscritos de un evento con resumen de cupo
+ * GET /api/eventos/:id/inscritos
  */
-const obtenerAsistentesPorEvento = async (req, res) => {
+const obtenerInscritosPorEvento = async (req, res) => {
   try {
     const evento = await Evento.findById(req.params.id);
     if (!evento) {
       return res.status(404).json({ mensaje: "Evento no encontrado" });
     }
-    const asistentes = await Asistente.find({ evento: req.params.id });
-    const totalInscritos = asistentes.length;
+
+    const inscripciones = await Inscripcion.find({
+      evento: req.params.id,
+      estadoInscripcion: { $ne: "cancelada" },
+    }).populate({
+      path: "usuario",
+      select: "nombreUsuario correoElectronico rol",
+    });
+
+    const totalInscritos = inscripciones.length;
     const cupoDisponible = evento.capacidadMaxima - totalInscritos;
 
     res.json({
@@ -173,10 +218,10 @@ const obtenerAsistentesPorEvento = async (req, res) => {
       capacidadMaxima: evento.capacidadMaxima,
       totalInscritos,
       cupoDisponible,
-      asistentes,
+      inscritos: inscripciones,
     });
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener asistentes del evento", error: error.message });
+    res.status(500).json({ mensaje: "Error al obtener inscritos del evento", error: error.message });
   }
 };
 
@@ -189,5 +234,5 @@ module.exports = {
   cancelarEvento,
   finalizarEvento,
   obtenerEventosDisponibles,
-  obtenerAsistentesPorEvento,
+  obtenerInscritosPorEvento,
 };

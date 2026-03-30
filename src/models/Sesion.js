@@ -1,47 +1,21 @@
 const mongoose = require("mongoose");
 
-/**
- * Modelo de Sesión
- * Representa una actividad dentro de un evento
- */
-
 const sesionSchema = new mongoose.Schema({
-  tituloSesion: {
-    type: String,
-    required: true,
-  },
-
-  descripcionSesion: {
-    type: String,
-    required: true,
-  },
-
-  horaInicio: {
-    type: String,
-    required: true,
-  },
-
-  horaFin: {
-    type: String,
-    required: true,
-  },
-
+  tituloSesion:      { type: String, required: true },
+  descripcionSesion: { type: String, required: true },
+  horaInicio:        { type: String, required: true },
+  horaFin:           { type: String, required: true },
   evento: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Evento",
     required: true,
   },
-
   ponente: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Ponente",
     required: true,
   },
-
-  fechaCreacion: {
-    type: Date,
-    default: Date.now,
-  },
+  fechaCreacion: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model("Sesion", sesionSchema);

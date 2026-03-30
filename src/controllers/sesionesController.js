@@ -1,8 +1,6 @@
 const Sesion = require("../models/Sesion");
 
-/**
- * Crear sesión
- */
+/** Crear sesión */
 const crearSesion = async (req, res) => {
   try {
     const nuevaSesion = new Sesion(req.body);
@@ -13,13 +11,11 @@ const crearSesion = async (req, res) => {
   }
 };
 
-/**
- * Obtener todas las sesiones
- */
+/** Obtener todas las sesiones */
 const obtenerSesiones = async (req, res) => {
   try {
     const sesiones = await Sesion.find()
-      .populate("evento", "nombreEvento fechaEvento ubicacion")
+      .populate("evento", "nombreEvento fechaEvento ubicacionEvento")
       .populate("ponente", "nombre especialidad");
     res.json(sesiones);
   } catch (error) {
@@ -27,13 +23,11 @@ const obtenerSesiones = async (req, res) => {
   }
 };
 
-/**
- * Obtener una sesión por ID
- */
+/** Obtener una sesión por ID */
 const obtenerSesionPorId = async (req, res) => {
   try {
     const sesion = await Sesion.findById(req.params.id)
-      .populate("evento", "nombreEvento fechaEvento ubicacion")
+      .populate("evento", "nombreEvento fechaEvento ubicacionEvento")
       .populate("ponente", "nombre especialidad");
     if (!sesion) {
       return res.status(404).json({ mensaje: "Sesión no encontrada" });
@@ -44,9 +38,7 @@ const obtenerSesionPorId = async (req, res) => {
   }
 };
 
-/**
- * Actualizar sesión
- */
+/** Actualizar sesión */
 const actualizarSesion = async (req, res) => {
   try {
     const sesionActualizada = await Sesion.findByIdAndUpdate(
@@ -63,9 +55,7 @@ const actualizarSesion = async (req, res) => {
   }
 };
 
-/**
- * Eliminar sesión
- */
+/** Eliminar sesión */
 const eliminarSesion = async (req, res) => {
   try {
     const sesion = await Sesion.findByIdAndDelete(req.params.id);

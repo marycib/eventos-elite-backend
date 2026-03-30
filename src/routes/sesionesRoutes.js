@@ -2,27 +2,13 @@ const express = require("express");
 const router = express.Router();
 const verificarToken = require("../middlewares/authMiddleware");
 const verificarRol = require("../middlewares/rolMiddleware");
-const {
-  crearSesion,
-  obtenerSesiones,
-  obtenerSesionPorId,
-  actualizarSesion,
-  eliminarSesion,
-} = require("../controllers/sesionesController");
+const { validarSesion, validarActualizarSesion, validarId } = require("../middlewares/validadores");
+const { crearSesion, obtenerSesiones, obtenerSesionPorId, actualizarSesion, eliminarSesion } = require("../controllers/sesionesController");
 
-/** Crear sesión */
-router.post("/crear", verificarToken, verificarRol("administrador", "organizador"), crearSesion);
-
-/** Listar todas las sesiones */
+router.post("/crear", verificarToken, verificarRol("administrador", "organizador"), validarSesion, crearSesion);
 router.get("/listar", obtenerSesiones);
-
-/** Obtener sesión por ID */
-router.get("/:id", obtenerSesionPorId);
-
-/** Actualizar sesión */
-router.put("/:id", verificarToken, verificarRol("administrador", "organizador"), actualizarSesion);
-
-/** Eliminar sesión */
-router.delete("/:id", verificarToken, verificarRol("administrador"), eliminarSesion);
+router.get("/:id", validarId, obtenerSesionPorId);
+router.put("/:id", verificarToken, verificarRol("administrador", "organizador"), validarId, validarActualizarSesion, actualizarSesion);
+router.delete("/:id", verificarToken, verificarRol("administrador"), validarId, eliminarSesion);
 
 module.exports = router;

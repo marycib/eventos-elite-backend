@@ -5,13 +5,11 @@ const jwt = require("jsonwebtoken");
 /**
  * REGISTER
  * POST /api/auth/register
- * Registro público de nuevos usuarios (rol por defecto: asistente)
  */
 exports.register = async (req, res) => {
   try {
     const { nombreUsuario, correoElectronico, contrasena, rol } = req.body;
 
-    // Verificar si el correo ya existe
     const usuarioExistente = await Usuario.findOne({ correoElectronico });
     if (usuarioExistente) {
       return res.status(400).json({ mensaje: "El correo ya está registrado" });
@@ -24,12 +22,11 @@ exports.register = async (req, res) => {
       nombreUsuario,
       correoElectronico,
       contrasena: contrasenaEncriptada,
-      rol: rol || "asistente", // por defecto asistente
+      rol: rol || "asistente",
     });
 
     const usuarioGuardado = await nuevoUsuario.save();
 
-    // Generar token inmediatamente al registrarse
     const token = jwt.sign(
       { id: usuarioGuardado._id, rol: usuarioGuardado.rol },
       process.env.JWT_SECRET,
@@ -47,6 +44,9 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ mensaje: "El correo ya está registrado" });
+    }
     res.status(500).json({ mensaje: "Error al registrar usuario", error: error.message });
   }
 };
@@ -93,11 +93,9 @@ exports.login = async (req, res) => {
 /**
  * ME — quién está logueado
  * GET /api/auth/me
- * Requiere token válido en el header Authorization
  */
 exports.me = async (req, res) => {
   try {
-    // req.usuario viene del middleware verificarToken
     const usuario = await Usuario.findById(req.usuario.id).select("-contrasena");
     if (!usuario) {
       return res.status(404).json({ mensaje: "Usuario no encontrado" });

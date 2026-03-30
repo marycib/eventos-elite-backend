@@ -1,21 +1,20 @@
 const Ponente = require("../models/Ponente");
 
-/**
- * Crear ponente
- */
+/** Crear ponente */
 exports.crearPonente = async (req, res) => {
   try {
     const nuevoPonente = new Ponente(req.body);
     const ponenteGuardado = await nuevoPonente.save();
     res.status(201).json({ mensaje: "Ponente creado correctamente", ponente: ponenteGuardado });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ mensaje: "Ya existe un ponente con ese correo" });
+    }
     res.status(500).json({ mensaje: "Error al crear ponente", error: error.message });
   }
 };
 
-/**
- * Obtener todos los ponentes
- */
+/** Obtener todos los ponentes */
 exports.obtenerPonentes = async (req, res) => {
   try {
     const ponentes = await Ponente.find();
@@ -25,9 +24,7 @@ exports.obtenerPonentes = async (req, res) => {
   }
 };
 
-/**
- * Obtener un ponente por ID
- */
+/** Obtener un ponente por ID */
 exports.obtenerPonentePorId = async (req, res) => {
   try {
     const ponente = await Ponente.findById(req.params.id);
@@ -40,9 +37,7 @@ exports.obtenerPonentePorId = async (req, res) => {
   }
 };
 
-/**
- * Actualizar ponente
- */
+/** Actualizar ponente */
 exports.actualizarPonente = async (req, res) => {
   try {
     const ponenteActualizado = await Ponente.findByIdAndUpdate(
@@ -59,9 +54,7 @@ exports.actualizarPonente = async (req, res) => {
   }
 };
 
-/**
- * Eliminar ponente
- */
+/** Eliminar ponente */
 exports.eliminarPonente = async (req, res) => {
   try {
     const ponente = await Ponente.findByIdAndDelete(req.params.id);
